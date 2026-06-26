@@ -1,0 +1,38 @@
+
+
+
+WITH customer_ltv AS (
+    SELECT
+        customerkey,
+        SUM(total_net_revenue) AS total_ltv
+    FROM cohort_analysis
+    GROUP BY customerkey
+),
+customer_segments AS (
+    SELECT
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY total_ltv) AS Q1,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY total_ltv) AS Q3
+    FROM customer_ltv
+),
+segment_values AS (
+    SELECT
+        c.customerkey,
+        c.total_ltv,
+        CASE
+            WHEN c.total_ltv < Q1 THEN '1 - Low-Value'
+            WHEN c.total_ltv BETWEEN Q1 AND Q3 THEN '2 - Mid-Value'
+            ELSE '3 - High-Value'
+        END AS customer_segment
+    FROM customer_ltv c,
+    customer_segments cs
+)
+SELECT
+    customer_segment,
+    SUM(total_ltv) AS total_ltv,
+    SUM(total_ltv) / (SELECT SUM(total_ltv) FROM segment_values) AS ltv_percentage,
+    COUNT(customerkey) AS customer_count,
+    SUM(total_ltv) / COUNT(customerkey) AS avg_ltv
+FROM segment_values
+GROUP BY customer_segment
+ORDER BY total_ltv DESC
+;
