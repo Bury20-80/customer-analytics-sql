@@ -81,7 +81,7 @@ This view is the foundation for all subsequent queries — avoiding repeated joi
 Monthly breakdown of total revenue, unique customers, and average revenue per customer.
 
 
-![MonthlyRevenueTrends.png](/SQL/Projects/SQL_Project/Project_SQL/Images/MonthlyRevenueTrends.png)
+![MonthlyRevenueTrends.png](Images/MonthlyRevenueTrends.png)
 
 
 ---
@@ -97,7 +97,7 @@ AVG(tr) OVER(ORDER BY ym ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS rolling_av
 ```
 
 
-![RawVsRollingAverage.png](/SQL/Projects/SQL_Project/Project_SQL/Images/RawVsRollingAverage.png)
+![RawVsRollingAverage.png](Images/RawVsRollingAverage.png)
 
 
 ---
@@ -114,7 +114,7 @@ Segments all customers into three value tiers based on IQR (Q1/Q3 percentile bou
 | 2 - Mid-Value | 24,743 | $2,682 | 32.2% |
 | 1 - Low-Value | 12,372 | $347 | 2.1% |
 
-![RevenueCustomerSegment.png](/SQL/Projects/SQL_Project/Project_SQL/Images/RevenueCustomerSegment.png)
+![RevenueCustomerSegment.png](Images/RevenueCustomerSegment.png)
 
 ---
 
@@ -126,7 +126,7 @@ Classifies customers as **Active** or **Churned** based on whether their last pu
 
 > **Note:** Customers whose first purchase falls within the last 6 months (~5.2% of all customers) are intentionally excluded from this analysis as they have not had sufficient time to be evaluated for churn.
 
-![ChurnByCohort.png](/SQL/Projects/SQL_Project/Project_SQL/Images/ChurnByCohort.png)
+![ChurnByCohort.png](Images/ChurnByCohort.png)
 
 ---
 
@@ -158,7 +158,7 @@ Scores each customer on three dimensions using NTILE(5) quintiles, then maps sco
 
 > **Note:** 265 avg days inactive for Champions may seem high, but it reflects the relative scoring via NTILE. Within a 9-year dataset where the majority of customers last purchased 3-5 years ago, 265 days places Champions firmly in the top recency quintile.
 
-![RFM.png](/SQL/Projects/SQL_Project/Project_SQL/Images/RFM.png)
+![RFM.png](Images/RFM.png)
 
 ---
 
@@ -172,7 +172,7 @@ Revenue, gross profit, and margin analysis by product category. Margin is calcul
 ROUND(SUM(line_revenue - line_cost) * 100.0 / NULLIF(SUM(line_revenue), 0), 1) AS avg_margin_pct
 ```
 
-![RevenueVsGross.png](/SQL/Projects/SQL_Project/Project_SQL/Images/RevenueVsGross.png)
+![RevenueVsGross.png](Images/RevenueVsGross.png)
 
 ---
 
@@ -184,7 +184,7 @@ Classifies every customer-month as New (first purchase month) or Returning, trac
 
 **Key trend:**
 
-![NewVsReturningRevenue.png](/SQL/Projects/SQL_Project/Project_SQL/Images/NewVsReturningRevenue.png)
+![NewVsReturningRevenue.png](Images/NewVsReturningRevenue.png)
 
 ---
 
@@ -215,12 +215,7 @@ At 44.2% of total revenue, Computers are the revenue engine. However Music, Movi
 - **Database:** PostgreSQL 17
 - **Tools Used:** pgAdmin 4, DBeaver, Visual Studio Code
 
-
 ---
 
-## Acknowledgements
-
-This project was completed as part of the **Data Analytics course by Luke Barousse**.  
-Course website: [https://www.lukebarousse.com/](https://www.lukebarousse.com/)
-
-Dataset: **Contoso 100K** — a fictional retail dataset widely used for analytics practice and education.
+## Dataset
+**Contoso 100K** — a fictional retail dataset widely used for analytics practice and education.
