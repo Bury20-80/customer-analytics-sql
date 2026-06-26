@@ -213,7 +213,7 @@ At 44.2% of total revenue, Computers are the revenue engine. However Music, Movi
 ## Technical Notes
 
 - **Database:** PostgreSQL 17
-- **Tools Used:** pgAdmin 4, DBeaver, Visual Studio Code
+- **Tools Used:** pgAdmin 4, DBeaver, Visual Studio Code, Claude (Visualizations)
 
 ---
 
