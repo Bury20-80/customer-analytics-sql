@@ -1,17 +1,3 @@
-"""
-Połączenie do bazy Postgres (Contoso 100K) przez SQLAlchemy.
-
-Wymaga pliku .env w folderze python/ (obok requirements.txt) z zawartością:
-
-    DB_HOST=localhost
-    DB_PORT=5432
-    DB_NAME=contoso_100k
-    DB_USER=postgres
-    DB_PASSWORD=twoje_haslo
-
-.env NIE trafia do repo — musi być w .gitignore.
-"""
-
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
