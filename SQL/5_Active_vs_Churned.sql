@@ -1,12 +1,16 @@
--- NOTE: 90.5% churn rate is expected given the 2015–2024 data range.
--- With a 6-month inactivity threshold, most historical customers
--- naturally fall into the Churned bucket. This is not a data issue.
-
--- NOTE: ~5.2% of customers (those with first_purchase_date within
--- the last 6 months) are intentionally excluded from this analysis
--- as they have not had sufficient time to be evaluated for churn.
-
-
+-- CHURN THRESHOLD — UPDATED FROM 180 DAYS TO 558 DAYS (MEDIAN)
+-- Original 180-day (6-month) threshold was validated against the actual
+-- distribution of days between purchases for the same customer
+-- (see python/notebooks/3_statistical_analysis.ipynb).
+--
+-- The median (558 days) was chosen as the threshold: it is the point
+-- where a customer is statistically more likely to be inactive than
+-- active
+--
+-- NOTE: this value is a snapshot computed in Python at analysis time,
+-- If the underlying sales data changes materially,
+-- re-run the notebook and update this constant manually
+ 
 WITH customer_last_purchase AS (
     SELECT
         customerkey,
@@ -22,12 +26,12 @@ churned_customers AS (
         orderdate AS last_purchase_date,
         cohort_year,
         CASE
-            WHEN orderdate < (SELECT MAX(orderdate) FROM sales) - INTERVAL '6 months' THEN 'Churned'
+            WHEN orderdate < (SELECT MAX(orderdate) FROM sales) - INTERVAL '558 days' THEN 'Churned'
             ELSE 'Active'
         END AS customer_status
     FROM customer_last_purchase
     WHERE rn = 1
-        AND first_purchase_date < (SELECT MAX(orderdate) FROM sales) - INTERVAL '6 months'
+        AND first_purchase_date < (SELECT MAX(orderdate) FROM sales) - INTERVAL '558 days'
 )
 SELECT
     cohort_year,
