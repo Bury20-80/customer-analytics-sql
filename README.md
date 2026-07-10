@@ -39,7 +39,7 @@ SELECT
 FROM customer_revenue cr
 ```
 
-Python never re-derives these metrics: it queries the same view and the same result sets, so SQL and Python stay consistent by construction.
+Python never re-derives these metrics. It queries the same view and the same result sets, so SQL and Python stay consistent by construction.
 
 ---
 
