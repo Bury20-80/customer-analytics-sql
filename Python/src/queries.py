@@ -1,11 +1,3 @@
-"""
-Zapytania SQL jako stringi, 1:1 odzwierciedlające pliki z folderu sql/.
-Cel: Python NIE duplikuje logiki biznesowej — pobiera gotowe wyniki
-z widoku cohort_analysis i istniejących zapytań, żeby uniknąć rozjazdu
-między wersją SQL i Python tej samej metryki.
-"""
-
-# Widok cohort_analysis musi już istnieć w bazie (patrz sql/1_View.sql)
 COHORT_ANALYSIS_RAW = """
 SELECT *
 FROM cohort_analysis
