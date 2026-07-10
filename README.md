@@ -93,6 +93,7 @@ df_dates = df_dates.sort_values(['customerkey', 'orderdate'])
 df_dates['gap_days'] = df_dates.groupby('customerkey')['orderdate'].diff().dt.days
 gaps = df_dates['gap_days'].dropna()
 ```
+![Purchase Gap Distribution](Images/purchase_gap_distribution.png)
 
 | Percentile | Days |
 |---|---|
@@ -115,18 +116,13 @@ END AS customer_status
 
 ![Churn by Cohort](Images/churn_by_cohort.png)
 
-### 6. Purchase Gap Distribution *(Python addition)*
-The full distribution behind the correction above: heavily right-skewed, confirming electronics purchases are naturally infrequent.
-
-![Purchase Gap Distribution](Images/purchase_gap_distribution.png)
-
-### 7. RFM Segmentation
+### 6. RFM Segmentation
 Each customer scored on Recency, Frequency, and Monetary value (NTILE(5) quintiles), mapped to 9 business segments.
 
 ![RFM Bubble Chart](Images/rfm_bubble.png)
 ![RFM Revenue by Priority](Images/rfm_revenue_priority.png)
 
-### 8. Product Category Analysis
+### 7. Product Category Analysis
 Revenue-weighted margin by category, avoiding distortion from low-value line items.
 
 ```sql
@@ -135,7 +131,7 @@ ROUND(SUM(line_revenue - line_cost) * 100.0 / NULLIF(SUM(line_revenue), 0), 1) A
 
 ![Revenue vs Gross Profit](Images/revenue_vs_gross_profit.png)
 
-### 9. New vs Returning Customer Revenue
+### 8. New vs Returning Customer Revenue
 Tracks how the acquisition vs retention revenue mix evolved over time.
 
 ![New vs Returning Revenue](Images/new_vs_returning_revenue.png)
