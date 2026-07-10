@@ -92,9 +92,6 @@ GROUP BY order_month
 ORDER BY order_month
 """
 
-# UWAGA: próg 558 dni (mediana odstępów między zakupami, zweryfikowana w
-# python/notebooks/3_statistical_analysis.ipynb) — zastępuje pierwotne 180 dni.
-# Patrz komentarz w SQL/5_Active_vs_Churned.sql po szczegóły uzasadnienia.
 ACTIVE_VS_CHURNED = """
 WITH customer_last_purchase AS (
     SELECT
