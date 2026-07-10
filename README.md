@@ -1,4 +1,4 @@
-# Customer Analytics: SQL + Python
+# Customer Analytics. SQL + Python
 
 End-to-end customer analytics project on the Contoso 100K dataset (~100,000 customers, ~200,000 transactions, 2015-2024), a fictional electronics retailer. SQL builds the core metrics; Python validates them, recreates every chart from real code, and adds two statistical analyses that led to a methodology correction in the SQL layer.
 
