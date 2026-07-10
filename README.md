@@ -62,55 +62,13 @@ AVG(tr) OVER (ORDER BY ym ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS rolling_a
 ### 3. Customer LTV Segmentation
 Three value tiers based on Q1/Q3 boundaries of lifetime revenue.
 
-<<<<<<< HEAD
 | Segment | Customers | Avg LTV | % of Revenue |
-=======
-### 2. Monthly Revenue & Customer Trends
-
-**File:** `2_Monthly_Revenue_Customer_Trends.sql`
-
-Monthly breakdown of total revenue, unique customers, and average revenue per customer.
-
-
-![MonthlyRevenueTrends.png](Images/MonthlyRevenueTrends.png)
-
-
----
-
-### 3. 3-Month Rolling Averages
-
-**File:** `3_Three_Month_Rolling_Average.sql`
-
-Smooths monthly volatility using a **centred 3-month window** (`1 PRECEDING AND 1 FOLLOWING`) to better expose underlying trends in revenue, customer count, and revenue per customer.
-
-```sql
-AVG(tr) OVER(ORDER BY ym ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS rolling_avg_revenue
-```
-
-
-![RawVsRollingAverage.png](Images/RawVsRollingAverage.png)
-
-
----
-
-### 4. Customer LTV Segmentation
-
-**File:** `4_Segmentation.sql`
-
-Segments all customers into three value tiers based on IQR (Q1/Q3 percentile boundaries of lifetime revenue).
-
-| Segment | Customers | Avg LTV | % of Total Revenue |
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 |---|---|---|---|
 | High-Value | 12,372 | $10,961 | 65.7% |
 | Mid-Value | 24,743 | $2,682 | 32.2% |
 | Low-Value | 12,372 | $347 | 2.1% |
 
-<<<<<<< HEAD
 ![Revenue by Segment](Images/revenue_by_segment.png)
-=======
-![RevenueCustomerSegment.png](Images/RevenueCustomerSegment.png)
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 
 ### 4. Revenue Concentration: Gini Coefficient & Lorenz Curve *(Python addition)*
 The LTV split above shows concentration; the Gini coefficient quantifies it with a single, comparable number.
@@ -130,15 +88,11 @@ def gini(values):
 ### 5. Active vs Churned Customers: threshold corrected from 180 to 558 days
 The original churn logic flagged anyone inactive for 6 months as churned, producing a ~90% churn rate in every cohort. A Python check of the actual gap between a customer's consecutive purchases showed this threshold doesn't match real buying behavior:
 
-<<<<<<< HEAD
 ```python
 df_dates = df_dates.sort_values(['customerkey', 'orderdate'])
 df_dates['gap_days'] = df_dates.groupby('customerkey')['orderdate'].diff().dt.days
 gaps = df_dates['gap_days'].dropna()
 ```
-=======
-![ChurnByCohort.png](Images/ChurnByCohort.png)
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 
 | Percentile | Days |
 |---|---|
@@ -147,6 +101,7 @@ gaps = df_dates['gap_days'].dropna()
 | 75th | 1,193 |
 
 Only 21.5% of all purchase gaps fall within 180 days. The original threshold was flagging most naturally-returning customers as churned before they'd had a realistic chance to come back. We adopted the median purchase gap (558 days) as a pragmatic, data-driven threshold because it better reflects the observed purchase cadence than the previously assumed 180-day window.
+
 ```sql
 CASE
     WHEN orderdate < (SELECT MAX(orderdate) FROM sales) - INTERVAL '558 days' THEN 'Churned'
@@ -168,12 +123,8 @@ The full distribution behind the correction above: heavily right-skewed, confirm
 ### 7. RFM Segmentation
 Each customer scored on Recency, Frequency, and Monetary value (NTILE(5) quintiles), mapped to 9 business segments.
 
-<<<<<<< HEAD
 ![RFM Bubble Chart](Images/rfm_bubble.png)
 ![RFM Revenue by Priority](Images/rfm_revenue_priority.png)
-=======
-![RFM.png](Images/RFM.png)
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 
 ### 8. Product Category Analysis
 Revenue-weighted margin by category, avoiding distortion from low-value line items.
@@ -182,28 +133,12 @@ Revenue-weighted margin by category, avoiding distortion from low-value line ite
 ROUND(SUM(line_revenue - line_cost) * 100.0 / NULLIF(SUM(line_revenue), 0), 1) AS avg_margin_pct
 ```
 
-<<<<<<< HEAD
 ![Revenue vs Gross Profit](Images/revenue_vs_gross_profit.png)
-=======
-![RevenueVsGross.png](Images/RevenueVsGross.png)
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 
 ### 9. New vs Returning Customer Revenue
 Tracks how the acquisition vs retention revenue mix evolved over time.
 
-<<<<<<< HEAD
 ![New vs Returning Revenue](Images/new_vs_returning_revenue.png)
-=======
-### 8. New vs Returning Customer Trends
-
-**File:** `8_New_vs_Returning.sql`
-
-Classifies every customer-month as New (first purchase month) or Returning, tracking how the acquisition vs retention revenue mix evolved over time.
-
-**Key trend:**
-
-![NewVsReturningRevenue.png](Images/NewVsReturningRevenue.png)
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
 
 ---
 
@@ -215,34 +150,5 @@ Classifies every customer-month as New (first purchase month) or Returning, trac
 4. **The business crossed 50% returning revenue in mid-2022**, a maturation signal from acquisition-driven to retention-driven growth.
 5. **Computers dominate revenue (44.2%) but not margin**: Music, Movies & Audio Books leads on margin (58.6%) despite a small revenue share.
 
-<<<<<<< HEAD
 ## Tools
 PostgreSQL 17, pgAdmin 4, Python (pandas, SQLAlchemy, matplotlib, seaborn), Jupyter.
-=======
-**2. Top 25% of customers generate 66% of all revenue**
-LTV segmentation shows extreme revenue concentration. High-Value customers (top quartile by LTV) account for $135.6M of $206.3M total revenue. The bottom 25% generate just 2.1%.
-
-**3. The business has a structural retention problem — or a structural one-purchase model**
-Churn rate sits consistently at ~90% across every cohort year from 2015 to 2023. This is either a category-level behaviour (electronics are infrequent purchases) or a missed retention opportunity — the RFM data suggests both.
-
-**4. Champions are high-value and still relatively recent**
-After correcting for RFM scoring, Champions (R≥4 F≥4 M≥4) average 265 days inactive and $9,100 LTV — genuinely the best customers. At Risk customers (R≤2 F≥4 M≥4) have $9,066 LTV but 1,532 days inactive — equally valuable, but rapidly becoming unrecoverable.
-
-**5. The business crossed 50% returning revenue in mid-2022**
-New vs Returning analysis shows a structural inflection point in 2022 where returning customer revenue overtook new customer revenue for the first time. By early 2024, 67% of customers in any given month are returning — a significant maturation signal.
-
-**6. Computers dominate revenue but not margin**
-At 44.2% of total revenue, Computers are the revenue engine. However Music, Movies & Audio Books leads on gross margin at 58.6%, despite contributing only 5.1% of revenue — a potential underinvested category.
-
----
-
-## Technical Notes
-
-- **Database:** PostgreSQL 17
-- **Tools Used:** pgAdmin 4, DBeaver, Visual Studio Code, Claude (Visualizations)
-
----
-
-## Dataset
-**Contoso 100K** — a fictional retail dataset widely used for analytics practice and education.
->>>>>>> 25fb77a27272e3a5a79e4051ca0099d5e5b72b16
