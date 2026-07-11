@@ -1,6 +1,3 @@
-
-
-
 WITH customer_ltv AS (
     SELECT
         customerkey,
@@ -34,5 +31,4 @@ SELECT
     SUM(total_ltv) / COUNT(customerkey) AS avg_ltv
 FROM segment_values
 GROUP BY customer_segment
-ORDER BY total_ltv DESC
-;
+ORDER BY total_ltv DESC;
