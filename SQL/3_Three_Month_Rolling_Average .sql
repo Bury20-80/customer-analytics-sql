@@ -1,5 +1,3 @@
-
-
 WITH Monthly_Trend AS 
 (
 SELECT
