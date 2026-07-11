@@ -1,7 +1,7 @@
 /* RFM Customer Segmentation
  
   Scores each customer on three dimensions using NTILE(5) quintiles (1=worst, 5=best):
-   - Recency   : days since last purchase — fewer days = better → score inverted via (6 - NTILE)
+   - Recency   : days since last purchase --> fewer days = better → score inverted via (6 - NTILE)
    - Frequency : number of distinct purchase days
    - Monetary  : total lifetime revenue (USD-normalised via exchange rate in cohort_analysis)
  
@@ -15,7 +15,6 @@
   records outside the cohort scope.
  
  Customers are then mapped to 9 business segments based on combined R/F/M scores.
- Dataset: Contoso 100k. 2015-01-01 to 2024-04-20
  */
 
 WITH
@@ -101,7 +100,7 @@ rfm_segments AS (
             WHEN r_score >= 3 AND f_score >= 3 AND m_score >= 4
                 THEN 'Loyal Customers'
 
-            -- Bought recently but infrequently — new or newly re-engaged
+            -- Bought recently but infrequently - new or newly re-engaged
             WHEN r_score >= 4 AND f_score <= 2
                 THEN 'New Customers'
 
