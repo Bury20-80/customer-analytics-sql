@@ -10,7 +10,7 @@
    R: ORDER BY ASC on days_since → NTILE=1 = fewest days (most recent)
   then (6 - NTILE) inverts the scale so R=5 = most recent (best) 
  
-  Reference date: MAX(orderdate) from cohort_analysis — kept consistent
+  Reference date: MAX(orderdate) from cohort_analysis, kept consistent
   with the view's data source to avoid discrepancies if sales contains
   records outside the cohort scope.
  
@@ -104,23 +104,23 @@ rfm_segments AS (
             WHEN r_score >= 4 AND f_score <= 2
                 THEN 'New Customers'
 
-            -- Regular engagement but mid-range spend — upsell opportunity
+            -- Regular engagement but mid-range spend - upsell opportunity
             WHEN r_score >= 3 AND f_score >= 3 AND m_score <= 3
                 THEN 'Potential Loyalists'
 
-            -- Used to buy often and spend big, now going quiet — urgent win-back
+            -- Used to buy often and spend big, now going quiet - urgent win-back
             WHEN r_score <= 2 AND f_score >= 4 AND m_score >= 4
                 THEN 'At Risk'
 
-            -- Declining engagement, mid-value — needs a nudge
+            -- Declining engagement, mid-value - needs a nudge
             WHEN r_score <= 2 AND f_score >= 3 AND m_score >= 3
                 THEN 'Needs Attention'
 
-            -- Spent a lot but bought rarely and not recently — last-chance win-back
+            -- Spent a lot but bought rarely and not recently - last-chance win-back
             WHEN r_score <= 2 AND f_score <= 2 AND m_score >= 4
                 THEN 'Can''t Lose Them'
 
-            -- Low on all dimensions — likely permanently inactive
+            -- Low on all dimensions - likely permanently inactive
             WHEN r_score <= 2 AND f_score <= 2 AND m_score <= 2
                 THEN 'Lost'
 
