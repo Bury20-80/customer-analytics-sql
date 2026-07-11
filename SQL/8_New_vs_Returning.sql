@@ -1,5 +1,3 @@
-
-
 WITH customer_orders AS (
     SELECT
         customerkey,
