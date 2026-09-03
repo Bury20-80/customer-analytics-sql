@@ -1,0 +1,44 @@
+# Secrets and local database configuration
+.env
+.env.*
+!.env.example
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Local raw data and ad-hoc exports
+/data/
+*.csv
+*.parquet
+*.feather
+*.db
+*.sqlite
+*.sqlite3
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local archives, logs and temporary files
+*.rar
+*.7z
+*.zip
+*.log
+*.tmp

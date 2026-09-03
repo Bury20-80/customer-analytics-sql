@@ -1,150 +1,223 @@
-# Customer Analytics. SQL + Python
+# Customer Analytics — SQL + Python
 
-End-to-end customer analytics project on the Contoso 100K dataset (~100,000 customers, ~200,000 transactions, 2015-2024), a fictional electronics retailer. SQL builds the core metrics; Python validates them, recreates every chart from real code, and adds two statistical analyses that led to a methodology correction in the SQL layer.
+End-to-end customer analytics project on a Contoso 100K PostgreSQL dataset. The analysis covers **49,487 purchasing customers**, **83,130 orders**, and **199,873 sales lines** from **2015-01-01 to 2024-04-20**.
+
+SQL defines the analytical grain and business metrics. Python loads those same `.sql` files for validation, visualization, and descriptive statistical analysis.
 
 ## Project Structure
 
-```
-SQL/                           # 8 queries, built on one reusable view
-├── 1_View.sql
-├── 2_Monthly_Revenue_Customer_Trends.sql
-├── 3_Three_Month_Rolling_Average.sql
-├── 4_Segmentation.sql
-├── 5_Active_vs_Churned.sql
-├── 6_RFM_Segmentation.sql
-├── 7_Product_Analysis.sql
-└── 8_New_vs_Returning.sql
+```text
+sql/
+├── intermediate/
+│   ├── 01_fact_orders.sql
+│   ├── 02_customer_metrics.sql
+│   └── 03_repeat_purchase_intervals.sql
+├── marts/
+│   ├── 01_monthly_revenue_customer_trends.sql
+│   ├── 02_three_month_rolling_average.sql
+│   ├── 03_customer_lifetime_revenue.sql
+│   ├── 04_customer_inactivity_by_cohort.sql
+│   ├── 05_rfm_segmentation.sql
+│   ├── 06_product_analysis.sql
+│   ├── 07_customer_revenue_mix.sql
+│   └── 08_repeat_purchase_intervals.sql
+└── validation/
+    ├── 01_raw_data_audit.sql
+    └── 02_order_grain_audit.sql
 
-Python/
-├── src/
-│   ├── db_connection.py       # SQLAlchemy engine
-│   └── queries.py             # SQL queries as reusable strings
+python/
 ├── notebooks/
-│   ├── 1_data_validation.ipynb
-│   ├── 2_visualizations.ipynb
-│   └── 3_statistical_analysis.ipynb
-└── requirements.txt
+│   ├── 01_data_validation.ipynb
+│   ├── 02_visualizations.ipynb
+│   └── 03_statistical_analysis.ipynb
+└── src/
+    ├── db.py
+    └── sql_utils.py
 
-Images/
+docs/
+└── DATA_SETUP.md
+
+images/
+requirements.txt
 ```
 
-All queries read from `cohort_analysis`, a view aggregating raw sales to `customerkey + orderdate` grain and assigning each customer a cohort year based on their first purchase:
+## Analytical Model
+
+The raw `sales` table is line-item grain, so order metrics are not calculated directly from raw rows. The first analytical layer aggregates every order before customer metrics are built:
 
 ```sql
-CREATE OR REPLACE VIEW cohort_analysis AS
 SELECT
-    cr.*,
-    MIN(cr.orderdate) OVER (PARTITION BY cr.customerkey) AS first_purchase_date,
-    EXTRACT(YEAR FROM MIN(cr.orderdate) OVER (PARTITION BY cr.customerkey)) AS cohort_year
-FROM customer_revenue cr
+    s.orderkey,
+    s.customerkey,
+    s.orderdate,
+    SUM(s.quantity * s.netprice / s.exchangerate) AS order_revenue_usd,
+    SUM(s.quantity) AS order_quantity
+FROM sales s
+GROUP BY
+    s.orderkey,
+    s.customerkey,
+    s.orderdate;
 ```
 
-Python never re-derives these metrics. It queries the same view and the same result sets, so SQL and Python stay consistent by construction.
+**Core grain:** `fact_orders` = one row per `orderkey`.
 
----
+This makes order counts, average order value, repeat-order intervals, and RFM Frequency consistent with their business definitions.
 
-## Analysis Overview
+## Analysis
 
-### 1. Monthly Revenue & Customer Trends
-Monthly revenue, unique customers, and average revenue per customer, recreated in `matplotlib`/`seaborn`.
+### 1. Monthly Customer and Revenue Trends
 
-![Monthly Revenue Trends](Images/monthly_revenue_trends.png)
+The average monthly number of purchasing customers increased from **239 in 2015** to **1277 in 2023** (5.3×). Over the same comparison, average monthly revenue per purchasing customer decreased by **26.5%**. This is a descriptive change in the observed customer/revenue mix; the dataset does not identify the business strategy that produced it.
 
-### 2. 3-Month Rolling Average
-Smooths monthly volatility with a centred rolling window.
+![Monthly Customer Trend](images/monthly_customer_trend.png)
+
+### 2. Monthly Revenue Smoothing
+
+A trailing three-month moving average is used to reduce month-to-month noise without using future observations.
 
 ```sql
-AVG(tr) OVER (ORDER BY ym ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS rolling_avg_revenue
+AVG(monthly_revenue_usd) OVER (
+    ORDER BY month
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+) AS trailing_3m_avg_revenue_usd
 ```
 
-![Raw vs Rolling Average](Images/raw_vs_rolling_average.png)
+![Monthly Revenue Rolling Average](images/monthly_revenue_rolling_average.png)
 
-### 3. Customer LTV Segmentation
-Three value tiers based on Q1/Q3 boundaries of lifetime revenue.
+### 3. Observed Customer Lifetime Revenue
 
-| Segment | Customers | Avg LTV | % of Revenue |
-|---|---|---|---|
+Customers are split using Q1/Q3 thresholds of historical lifetime revenue. This is **observed lifetime revenue**, not a predictive CLV model.
+
+| Segment | Customers | Avg lifetime revenue | Revenue share |
+|---|---:|---:|---:|
 | High-Value | 12,372 | $10,961 | 65.7% |
 | Mid-Value | 24,743 | $2,682 | 32.2% |
 | Low-Value | 12,372 | $347 | 2.1% |
 
-![Revenue by Segment](Images/revenue_by_segment.png)
+![Customer Revenue Segments](images/customer_revenue_segments.png)
 
-### 4. Revenue Concentration: Gini Coefficient & Lorenz Curve *(Python addition)*
-The LTV split above shows concentration; the Gini coefficient quantifies it with a single, comparable number.
+### 4. Revenue Concentration
 
-```python
-def gini(values):
-    x = np.sort(np.asarray(values, dtype=float))
-    n = len(x)
-    cum = np.cumsum(x)
-    return (2 * np.sum(np.arange(1, n + 1) * x) - (n + 1) * cum[-1]) / (n * cum[-1])
-```
+The Lorenz curve and Gini coefficient summarize concentration in customer revenue.
 
-**Result: Gini = 0.567.** For reference, this sits above typical national income Gini scores (~0.3-0.45); customer revenue here is markedly more concentrated than income in a typical economy.
+**Gini coefficient: 0.567.** The measure is used only to compare equality/concentration within this customer-revenue distribution; it is not compared directly with national income Gini values.
 
-![Gini Lorenz Curve](Images/gini_lorenz_curve.png)
+![Gini Lorenz Curve](images/gini_lorenz_curve.png)
 
-### 5. Active vs Churned Customers: threshold corrected from 180 to 558 days
-The original churn logic flagged anyone inactive for 6 months as churned, producing a ~90% churn rate in every cohort. A Python check of the actual gap between a customer's consecutive purchases showed this threshold doesn't match real buying behavior:
+### 5. Customer Inactivity
 
-```python
-df_dates = df_dates.sort_values(['customerkey', 'orderdate'])
-df_dates['gap_days'] = df_dates.groupby('customerkey')['orderdate'].diff().dt.days
-gaps = df_dates['gap_days'].dropna()
-```
-![Purchase Gap Distribution](Images/purchase_gap_distribution.png)
+The inactivity threshold is the **median observed interval between consecutive orders: 557 days** in this dataset. It is used as a pragmatic behavioral threshold and does not estimate a customer's probability of permanent churn.
 
-| Percentile | Days |
-|---|---|
-| 25th | 217 |
-| Median | 558 |
-| 75th | 1,193 |
+| Observed interval percentile | Days |
+|---|---:|
+| 25th | 216 |
+| Median | 557 |
+| 75th | 1193 |
 
-Only 21.5% of all purchase gaps fall within 180 days. The original threshold was flagging most naturally-returning customers as churned before they'd had a realistic chance to come back. We adopted the median purchase gap (558 days) as a pragmatic, data-driven threshold because it better reflects the observed purchase cadence than the previously assumed 180-day window.
+For cohorts old enough to have a full 557-day observation window, the share classified as inactive ranges from **70.9% to 74.1%** across 2015–2022 cohorts.
+
+![Customer Inactivity by Cohort](images/customer_inactivity_by_cohort.png)
+
+The purchase-gap distribution has an important survivorship limitation: a completed gap is observed only when another order occurs. It therefore does **not** estimate `P(customer never returns | inactivity duration)`.
+
+![Purchase Gap Distribution](images/purchase_gap_distribution.png)
+
+### 6. RFM Segmentation
+
+RFM uses:
+
+- **Recency:** days since the last order,
+- **Frequency:** number of actual `orderkey` values,
+- **Monetary:** observed lifetime revenue.
+
+Frequency is highly discrete, so its score uses transparent order-count bands (`1`, `2`, `3`, `4`, `5+`). Recency and Monetary use `PERCENT_RANK()` thresholds so identical metric values receive the same score rather than being split across arbitrary equal-sized buckets.
 
 ```sql
 CASE
-    WHEN orderdate < (SELECT MAX(orderdate) FROM sales) - INTERVAL '558 days' THEN 'Churned'
-    ELSE 'Active'
-END AS customer_status
+    WHEN frequency = 1 THEN 1
+    WHEN frequency = 2 THEN 2
+    WHEN frequency = 3 THEN 3
+    WHEN frequency = 4 THEN 4
+    ELSE 5
+END AS f_score
 ```
 
-**Result: churn rate dropped from ~90-92% to a stable ~71-74%** across cohorts, still structurally high (consistent with an infrequent-purchase category like electronics), but no longer an artifact of an unrealistically short window. One trade-off: a longer, better-justified threshold means recent cohorts (most of 2022, all of 2023) haven't had enough time to be evaluated yet and are excluded from this view.
+The full customer-level RFM output is produced by `sql/marts/05_rfm_segmentation.sql`; the visualization notebook aggregates it to segment-level summaries.
 
-> This threshold is a simple, data-grounded compromise, not a statistically optimal one. No survival analysis (e.g. Kaplan-Meier) was performed, which would be the next step if churn timing needed to be modeled more rigorously. The 558-day value was computed once in Python and hardcoded into the SQL query; it is a snapshot, not a live subquery, so it should be recalculated if the underlying data changes materially.
+![RFM Bubble Chart](images/rfm_bubble.png)
 
-![Churn by Cohort](Images/churn_by_cohort.png)
-
-### 6. RFM Segmentation
-Each customer scored on Recency, Frequency, and Monetary value (NTILE(5) quintiles), mapped to 9 business segments.
-
-![RFM Bubble Chart](Images/rfm_bubble.png)
-![RFM Revenue by Priority](Images/rfm_revenue_priority.png)
+![RFM Revenue by Segment](images/rfm_revenue_by_segment.png)
 
 ### 7. Product Category Analysis
-Revenue-weighted margin by category, avoiding distortion from low-value line items.
+
+Category revenue and gross profit are calculated from sales lines, with gross margin weighted by revenue rather than averaging row-level percentages.
 
 ```sql
-ROUND(SUM(line_revenue - line_cost) * 100.0 / NULLIF(SUM(line_revenue), 0), 1) AS avg_margin_pct
+SUM(line_revenue_usd - line_cost_usd) * 100.0
+/ NULLIF(SUM(line_revenue_usd), 0) AS gross_margin_pct
 ```
 
-![Revenue vs Gross Profit](Images/revenue_vs_gross_profit.png)
+In this dataset, **Computers account for 44.2% of revenue**, while **Music, Movies & Audio Books has the highest gross margin at 58.6%**.
 
-### 8. New vs Returning Customer Revenue
-Tracks how the acquisition vs retention revenue mix evolved over time.
+![Revenue vs Gross Profit](images/revenue_vs_gross_profit.png)
 
-![New vs Returning Revenue](Images/new_vs_returning_revenue.png)
+### 8. Acquisition-Month vs Returning-Customer Revenue
 
----
+The monthly revenue mix separates:
+
+- revenue generated during a customer's **first calendar month**, and
+- revenue from customers acquired in an **earlier month**.
+
+This intentionally answers a monthly acquisition-context question. It is not labelled as first-order vs repeat-order revenue. Returning-customer revenue first exceeded 50% in March 2022 and remained above 50% from August 2022 onward in the observed data.
+
+![Customer Revenue Mix](images/customer_revenue_mix.png)
 
 ## Key Findings
 
-1. **Customer volume grew 5x while average spend per customer fell 37%**: a shift from a high-yield, low-volume model (2015) to a high-volume, low-yield mass-market strategy (2024).
-2. **Top 25% of customers generate 66% of revenue**, confirmed independently by a Gini coefficient of 0.567.
-3. **Churn is structurally high (~71-74%) even after correcting the measurement threshold**: this looks like category-level behavior (electronics are infrequent purchases) rather than a measurement error, now on solid statistical footing.
-4. **The business crossed 50% returning revenue in mid-2022**, a maturation signal from acquisition-driven to retention-driven growth.
-5. **Computers dominate revenue (44.2%) but not margin**: Music, Movies & Audio Books leads on margin (58.6%) despite a small revenue share.
+1. Average monthly purchasing-customer volume was about **5.3× higher in 2023 than in 2015**, while average monthly revenue per purchasing customer was **26.5% lower**.
+2. The High-Value quartile generated **65.7% of observed customer revenue**; the Gini coefficient was **0.567**.
+3. The median observed repeat-order interval was **557 days**. It is used as an inactivity heuristic, not a probabilistic churn boundary.
+4. From August 2022 onward, monthly revenue from previously acquired customers remained above acquisition-month customer revenue in the observed period.
+5. Product revenue is concentrated in Computers, while the highest category gross margin belongs to Music, Movies & Audio Books.
+
+## Validation
+
+The validation layer checks:
+
+- raw NULL and invalid numeric values,
+- uniqueness of customer/product keys,
+- sales → customer/product foreign keys,
+- one customer and one date per `orderkey`,
+- one row per order in `fact_orders`,
+- raw-to-order revenue and quantity reconciliation,
+- RFM score ranges and tie handling,
+- non-negative repeat-order intervals.
+
+For the analyzed snapshot, the raw QA fingerprint is:
+
+```text
+sales rows             199,873
+orders                   83,130
+purchasing customers     49,487
+customer dimension      104,990
+order date range     2015-01-01 — 2024-04-20
+```
+
+## Limitations
+
+- The data is synthetic/fictional Contoso retail data; findings are portfolio demonstrations, not claims about a real retailer.
+- Historical lifetime revenue is descriptive and should not be interpreted as predicted CLV.
+- Inactivity is a heuristic status. A survival model would be required to estimate return/churn probability over time.
+- Repeat-order gaps are observed only for customers who return, creating survivorship bias in the gap distribution.
+- RFM is a prioritization heuristic, not a causal or predictive model.
+- 2024 is a partial year through April 20, so full-year comparisons use 2023 as the latest complete year.
+
+## Reproducibility
+
+See [`docs/DATA_SETUP.md`](docs/DATA_SETUP.md) for the dataset fingerprint, required raw columns, database connection settings, and execution order.
+
+Python loads the SQL files directly through `python/src/sql_utils.py`, so analytical SQL is not duplicated inside notebooks.
 
 ## Tools
-PostgreSQL 17, pgAdmin 4, Python (pandas, SQLAlchemy, matplotlib, seaborn), Jupyter.
+
+PostgreSQL, SQL, Python, pandas, NumPy, matplotlib, seaborn, SQLAlchemy, Jupyter.
